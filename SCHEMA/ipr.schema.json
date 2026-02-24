@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "HBCE-OIS Identity Primary Record (IPR)",
+  "type": "object",
+  "required": [
+    "ipr_id",
+    "issuer",
+    "issued_at",
+    "anchor_hash",
+    "integrity",
+    "status"
+  ],
+  "properties": {
+    "ipr_id": {
+      "type": "string"
+    },
+    "issuer": {
+      "type": "string"
+    },
+    "issued_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "anchor_hash": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "integrity": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["ACTIVE", "REVOKED", "SUSPENDED"]
+    },
+    "previous_hash": {
+      "type": "string"
+    }
+  }
+}
