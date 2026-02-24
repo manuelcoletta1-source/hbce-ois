@@ -1,0 +1,13 @@
+{
+  "ipr_id": "IPR-TEST-INVALID-0001",
+  "issuer": "HBCE-OIS",
+  "issued_at": "2026-02-24T00:00:00Z",
+  "anchor_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "status": "ACTIVE",
+  "scope": {
+    "category": "AUTONOMOUS_SYSTEM",
+    "jurisdiction": "EU"
+  },
+  "previous_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "integrity": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+}
