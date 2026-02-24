@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HBCE-OIS — IPR Verifier (Local, Deterministic)</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;max-width:980px;margin:24px auto;padding:0 14px;line-height:1.35}
+    h1{font-size:20px;margin:0 0 6px}
+    p{margin:0 0 10px;color:#222}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0}
+    textarea{width:100%;min-height:240px;padding:10px;border:1px solid #bbb;border-radius:10px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px}
+    button{padding:10px 12px;border:1px solid #111;border-radius:12px;background:#111;color:#fff;cursor:pointer}
+    button.secondary{background:#fff;color:#111}
+    .box{border:1px solid #bbb;border-radius:12px;padding:12px;margin-top:12px}
+    .ok{font-weight:700}
+    .bad{font-weight:700}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px}
+    code{background:#f2f2f2;padding:2px 5px;border-radius:6px}
+  </style>
+</head>
+<body>
+  <h1>HBCE-OIS — IPR Verifier</h1>
+  <p>Local deterministic verification. No network calls. Computes <code>SHA-256</code> and compares against <code>integrity</code>.</p>
+
+  <div class="row">
+    <button id="btnVerify">Verify IPR</button>
+    <button id="btnLoadExample" class="secondary">Load Example</button>
+    <button id="btnClear" class="secondary">Clear</button>
+  </div>
+
+  <textarea id="input" spellcheck="false" placeholder="Paste IPR JSON here..."></textarea>
+
+  <div class="box">
+    <div>Result: <span id="result" class="mono">—</span></div>
+    <div>Computed integrity: <span id="computed" class="mono">—</span></div>
+    <div>Stored integrity: <span id="stored" class="mono">—</span></div>
+    <div>Notes: <span id="notes" class="mono">—</span></div>
+  </div>
+
+<script>
+(() => {
+  "use strict";
+
+  const $ = (id) => document.getElementById(id);
+
+  // Minimal canonicalization: JSON.stringify with stable key order (recursive).
+  function sortKeysDeep(v){
+    if (Array.isArray(v)) return v.map(sortKeysDeep);
+    if (v && typeof v === "object"){
+      const out = {};
+      Object.keys(v).sort().forEach(k => { out[k] = sortKeysDeep(v[k]); });
+      return out;
+    }
+    return v;
+  }
+
+  function toCanonicalString(obj){
+    // NOTE: This uses stable sorted keys.
+    // It intentionally avoids whitespace variance.
+    return JSON.stringify(sortKeysDeep(obj));
+  }
+
+  async function sha256Hex(str){
+    const enc = new TextEncoder();
+    const buf = await crypto.subtle.digest("SHA-256", enc.encode(str));
+    const bytes = new Uint8Array(buf);
+    return Array.from(bytes).map(b => b.toString(16).padStart(2,"0")).join("");
+  }
+
+  function setResult(ok, msg){
+    $("result").textContent = msg;
+    $("result").className = "mono " + (ok ? "ok" : "bad");
+  }
+
+  function setNotes(msg){ $("notes").textContent = msg || "—"; }
+
+  async function verify(){
+    $("computed").textContent = "—";
+    $("stored").textContent = "—";
+    setNotes("");
+
+    let parsed;
+    try{
+      parsed = JSON.parse($("input").value);
+    }catch(e){
+      setResult(false, "INVALID JSON");
+      setNotes(String(e && e.message ? e.message : e));
+      return;
+    }
+
+    const stored = (parsed && typeof parsed === "object") ? (parsed.integrity || "") : "";
+    $("stored").textContent = stored || "—";
+
+    // Remove integrity for computation
+    const copy = JSON.parse(JSON.stringify(parsed));
+    delete copy.integrity;
+
+    const canonical = toCanonicalString(copy);
+    const computed = await sha256Hex(canonical);
+    $("computed").textContent = computed;
+
+    if (!stored){
+      setResult(false, "MISSING integrity");
+      setNotes("IPR has no integrity field.");
+      return;
+    }
+
+    if (String(stored).toLowerCase() === computed.toLowerCase()){
+      setResult(true, "VALID (integrity match)");
+      setNotes("Deterministic SHA-256 over canonical JSON without integrity.");
+    }else{
+      setResult(false, "INVALID (integrity mismatch)");
+      setNotes("Computed hash does not match stored integrity. Fail-closed.");
+    }
+  }
+
+  async function loadExample(){
+    try{
+      // Works on GitHub (raw access may be blocked on some contexts), so we embed a fallback.
+      const embedded = {
+        "ipr_id":"IPR-EXAMPLE-0001",
+        "issuer":"HBCE-OIS",
+        "issued_at":"2026-02-24T00:00:00Z",
+        "anchor_hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "integrity":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "status":"ACTIVE",
+        "scope":{"category":"AUTONOMOUS_SYSTEM","jurisdiction":"EU"},
+        "previous_hash":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      };
+      $("input").value = JSON.stringify(embedded, null, 2);
+      setResult(false, "EXAMPLE LOADED");
+      setNotes("Example uses placeholder hashes; it will not validate until integrity is recomputed.");
+    }catch(e){
+      setResult(false, "FAILED TO LOAD EXAMPLE");
+      setNotes(String(e && e.message ? e.message : e));
+    }
+  }
+
+  $("btnVerify").addEventListener("click", verify);
+  $("btnLoadExample").addEventListener("click", loadExample);
+  $("btnClear").addEventListener("click", () => {
+    $("input").value = "";
+    $("result").textContent = "—"; $("result").className = "mono";
+    $("computed").textContent = "—";
+    $("stored").textContent = "—";
+    setNotes("");
+  });
+})();
+</script>
+</body>
+</html>
