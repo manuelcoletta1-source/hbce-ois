@@ -1,9 +1,0 @@
-# HBCE-OIS v0.1
-
-## European Operational Identity Standard (Pre-Standard Draft)
-
-Status: Draft  
-Scope: Deterministic operational identity for autonomous, human and hybrid systems.  
-Jurisdictional alignment: European Union (EU-aligned environments)
-
-Full specification to follow.
