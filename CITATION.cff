@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+title: HBCE-OIS — European Operational Identity Pre-Standard
+message: "If you use or reference HBCE-OIS, please cite as below."
+type: standard
+authors:
+  - name: HBCE-OIS Working Draft
+repository-code: https://github.com/manuelcoletta1-source/hbce-ois
+version: v0.1
+date-released: 2026
+license: Apache-2.0
